@@ -1,0 +1,53 @@
+name: pyspark-postgres-demo
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:15
+    networks:
+      pyspark_postgres_net:
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=postgres
+    ports:
+      - 5432:5432
+  spark-postgres:
+    container_name: spark-postgres
+    build: spark
+    networks:
+      pyspark_postgres_net:
+    depends_on:
+      - minio
+    environment:
+      - AWS_ACCESS_KEY_ID=admin
+      - AWS_SECRET_ACCESS_KEY=password
+      - AWS_REGION=us-east-1
+      - AWS_DEFAULT_REGION=us-east-1
+    ports:
+      - 8888:8888
+      - 8080:8080
+      - 10000:10000
+      - 10001:10001
+    volumes:
+      - ./scripts:/opt/spark/scripts
+  # make sure that you specify correct volume to be mounted
+  minio:
+    container_name: minio
+    image: minio/minio:latest
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=password
+      - MINIO_DOMAIN=minio
+      - MINIO_REGION_NAME=us-east-1
+      - MINIO_REGION=us-east-1
+    networks:
+      pyspark_postgres_net:
+        aliases:
+          - warehouse.minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: [ "server", "/data", "--console-address", ":9001" ]
+
+networks:
+  pyspark_postgres_net:
